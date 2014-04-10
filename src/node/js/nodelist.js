@@ -76,7 +76,7 @@ NodeList.addMethod = function(name, fn, context) {
 
             Y.Array.each(this._nodes, function(node) {
                 var UID = (node.uniqueID && node.nodeType !== 9 ) ? 'uniqueID' : '_yuid',
-                    instance = Y.Node._instances[node[UID]],
+                    instance = Y_Node._getCachedNode(node),
                     ctx,
                     result;
 
@@ -168,7 +168,7 @@ Y.mix(NodeList.prototype, {
         var nodelist = this;
 
         Y.Array.each(this._nodes, function(node, index) {
-            var instance = Y.Node._instances[node[UID]];
+            var instance = Y_Node._getCachedNode(node);
             if (!instance) {
                 instance = NodeList._getTempNode(node);
             }
@@ -410,7 +410,7 @@ NodeList.prototype.get = function(attr) {
         val;
 
     if (nodes[0]) {
-        instance = Y.Node._instances[nodes[0]._yuid] || getTemp(nodes[0]);
+        instance = Y_Node._getCachedNode(nodes[0]) || getTemp(nodes[0]);
         val = instance._get(attr);
         if (val && val.nodeType) {
             isNodeList = true;
@@ -418,7 +418,7 @@ NodeList.prototype.get = function(attr) {
     }
 
     Y.Array.each(nodes, function(node) {
-        instance = Y.Node._instances[node._yuid];
+        instance = Y_Node._getCachedNode(node);
 
         if (!instance) {
             instance = getTemp(node);

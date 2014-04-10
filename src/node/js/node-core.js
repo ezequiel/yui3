@@ -46,7 +46,7 @@ var DOT = '.',
 
         var uid = (node.nodeType !== 9) ? node.uniqueID : node[UID];
 
-        if (uid && Y_Node._instances[uid] && Y_Node._instances[uid]._node !== node) {
+        if (uid && Y_Node._getCachedNode(node)) {
             node[UID] = null; // unset existing uid to prevent collision (via clone or hack)
         }
 
@@ -260,6 +260,17 @@ Y_Node.importMethod = function(host, name, altName) {
  * @for YUI
  */
 
+Y_Node._getCachedNode = function (domNode) {
+    domNode._yuiNodes = domNode._yuiNodes || {};
+    return domNode._yuiNodes[Y.id];
+};
+
+Y_Node._cacheNode = function (yuiNode) {
+    var domNode = yuiNode._node;
+    domNode._yuiNodes = domNode._yuiNodes || {};
+    domNode._yuiNodes[Y.id] = yuiNode;
+};
+
 /**
  * Returns a single Node instance bound to the node or the
  * first element matching the given selector. Returns null if no match found.
@@ -288,12 +299,12 @@ Y_Node.one = function(node) {
 
         if (node.nodeType || Y.DOM.isWindow(node)) { // avoid bad input (numbers, boolean, etc)
             uid = (node.uniqueID && node.nodeType !== 9) ? node.uniqueID : node._yuid;
-            instance = Y_Node._instances[uid]; // reuse exising instances
+            instance = Y_Node._getCachedNode(node); // reuse exising instances
             cachedNode = instance ? instance._node : null;
             if (!instance || (cachedNode && node !== cachedNode)) { // new Node when nodes don't match
                 instance = new Y_Node(node);
                 if (node.nodeType != 11) { // dont cache document fragment
-                    Y_Node._instances[instance[UID]] = instance; // cache node
+                    Y_Node._cacheNode(instance);
                 }
             }
         }
@@ -745,7 +756,7 @@ Y.mix(Y_Node.prototype, {
 
         if (recursive) {
             Y.NodeList.each(this.all('*'), function(node) {
-                instance = Y_Node._instances[node[UID]];
+                instance = Y_Node._getCachedNode(node);
                 if (instance) {
                    instance.destroy();
                 } else { // purge in case added by other means
@@ -754,10 +765,12 @@ Y.mix(Y_Node.prototype, {
             });
         }
 
+        if (this._node._yuiNodes) {
+            this._node._yuiNodes[Y.id] = null;
+        }
         this._node = null;
         this._stateProxy = null;
 
-        delete Y_Node._instances[this._yuid];
     },
 
     /**
